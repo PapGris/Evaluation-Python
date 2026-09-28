@@ -47,6 +47,7 @@ def _summary_section(stats: TriageStats) -> str:
     ]
     lines = ["## Synthèse chiffrée", "", "| Indicateur | Valeur |", "|---|---:|"]
     lines += [f"| {label} | {value} |" for label, value in rows]
+    lines.append(f"| Tentatives de manipulation détectées | {stats.suspicious} |")
     lines.append(f"| Urgence moyenne (1 = faible, 5 = critique) | {average} |")
     return "\n".join(lines)
 
@@ -81,7 +82,8 @@ def _to_check_section(results: list[TriageResult]) -> str:
     if not to_check:
         return "\n".join(lines + ["Aucun ticket à vérifier."])
     lines += [
-        "L'outil n'a pas pu analyser ces tickets de façon fiable : un membre de l'équipe doit les lire.",
+        "L'outil n'a pas pu analyser ces tickets de façon fiable, ou ils semblent chercher à le manipuler :",
+        "un membre de l'équipe doit les lire avant toute action.",
         "",
         "| Ticket | Joueur | Message | Raison |",
         "|---|---|---|---|",

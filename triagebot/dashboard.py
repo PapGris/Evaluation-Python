@@ -21,6 +21,8 @@ def render_dashboard(stats: TriageStats, console: Console | None = None) -> None
     console.print(_status_table(stats))
     console.print(_category_table(stats))
     console.print(_average_line(stats))
+    if stats.suspicious:
+        console.print(f"[bold red]Tentatives de manipulation détectées : {stats.suspicious}[/bold red]\n")
     console.print(_urgent_table(stats))
 
 
