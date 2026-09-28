@@ -1,3 +1,4 @@
 ollama==0.6.2
 rich==15.0.0
 httpx==0.28.1
+langdetect==1.0.9
