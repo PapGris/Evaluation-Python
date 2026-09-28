@@ -1,0 +1,9 @@
+[project]
+name = "triagebot"
+version = "0.1.0"
+description = "Tri automatique des tickets support de Dungeon Delivery avec un LLM local (Ollama)"
+requires-python = ">=3.14"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
