@@ -1,6 +1,6 @@
 """Structures de données manipulées par TriageBot."""
 
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from enum import StrEnum
 from typing import Any
 
@@ -73,6 +73,11 @@ class TriageResult:
     language: str | None = None
     draft: str | None = None
     escalation: Escalation | None = None
+    security_flags: list[str] = field(default_factory=list)
+
+    @property
+    def is_suspicious(self) -> bool:
+        return bool(self.security_flags)
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -83,5 +88,6 @@ class TriageResult:
             "duplicate_of": self.duplicate_of,
             "language": self.language,
             "escalation": str(self.escalation) if self.escalation else None,
+            "security_flags": self.security_flags,
             "draft": self.draft,
         }

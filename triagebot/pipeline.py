@@ -10,6 +10,7 @@ from triagebot.language import detect_language
 from triagebot.llm import LLMClient
 from triagebot.models import Ticket, TriageResult
 from triagebot.preprocess import prepare_tickets
+from triagebot.security import detect_injection
 
 ProgressCallback = Callable[[str, Ticket], None]
 
@@ -36,6 +37,9 @@ def _analyze(ticket: Ticket, client: LLMClient, on_progress: ProgressCallback | 
         on_progress("Analyse", ticket)
     result = analyze_ticket(ticket, client)
     result.language = detect_language(ticket.message)
+    result.security_flags = detect_injection(ticket.message)
+    if result.is_suspicious:
+        result.reason = "tentative de manipulation détectée : " + ", ".join(result.security_flags)
     return result
 
 
@@ -55,3 +59,4 @@ def _copy_original_to_duplicates(duplicates: list[TriageResult], analyzed: list[
             duplicate.analysis = original.analysis
             duplicate.language = original.language
             duplicate.draft = original.draft
+            duplicate.security_flags = original.security_flags

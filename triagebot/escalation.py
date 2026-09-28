@@ -17,8 +17,12 @@ ESCALATION_LABELS: dict[Escalation, str] = {
 
 
 def decide_escalation(result: TriageResult) -> Escalation:
-    """Applique les règles dans l'ordre ; la première qui correspond l'emporte."""
-    if result.status == Status.TO_CHECK:
+    """Applique les règles dans l'ordre ; la première qui correspond l'emporte.
+
+    Un ticket suspect de manipulation passe toujours en relecture humaine :
+    l'analyse du LLM a pu être influencée, on ne s'y fie donc pas.
+    """
+    if result.status == Status.TO_CHECK or result.is_suspicious:
         return Escalation.HUMAN_REVIEW
     analysis = result.analysis
     if analysis is None:

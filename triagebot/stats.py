@@ -13,10 +13,15 @@ class TriageStats:
     by_category: dict[Category, int]
     average_severity: float | None
     most_urgent: list[TriageResult]
+    suspicious: int
 
 
 def compute_stats(results: list[TriageResult], top_n: int = 3) -> TriageStats:
-    """Les doublons sont exclus des indicateurs pour ne pas compter deux fois le même problème."""
+    """Les doublons et les tickets suspects sont exclus des indicateurs.
+
+    Doublons : pour ne pas compter deux fois le même problème.
+    Suspects : leur analyse a pu être faussée par la manipulation (ex. urgence 5 imposée).
+    """
     analyzed = unique_analyzed(results)
     severities = [r.analysis.severity for r in analyzed if r.analysis]
     return TriageStats(
@@ -25,11 +30,12 @@ def compute_stats(results: list[TriageResult], top_n: int = 3) -> TriageStats:
         by_category=_count_categories(analyzed),
         average_severity=sum(severities) / len(severities) if severities else None,
         most_urgent=_most_urgent(analyzed, top_n),
+        suspicious=sum(1 for r in results if r.is_suspicious and r.status != Status.DUPLICATE),
     )
 
 
 def unique_analyzed(results: list[TriageResult]) -> list[TriageResult]:
-    return [r for r in results if r.status == Status.OK and r.analysis]
+    return [r for r in results if r.status == Status.OK and r.analysis and not r.is_suspicious]
 
 
 def _count_statuses(results: list[TriageResult]) -> dict[Status, int]:

@@ -34,6 +34,9 @@ def generate_draft(result: TriageResult, client: LLMClient, max_attempts: int = 
     if result.status == Status.SKIPPED:
         return EMPTY_MESSAGE_DRAFT
     language = result.language or DEFAULT_LANGUAGE
+    if result.is_suspicious:
+        # On n'envoie pas un message manipulateur au LLM rédacteur : réponse neutre fixe.
+        return fallback_draft(language)
     system = DRAFT_SYSTEM_PROMPT.format(language=language_name(language))
     prompt = _prompt_for(result)
     for attempt in range(1, max_attempts + 1):
