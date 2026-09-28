@@ -2,6 +2,7 @@
 
 import logging
 
+from triagebot.cache import ResponseCache
 from triagebot.config import MAX_ATTEMPTS
 from triagebot.errors import InvalidLLMResponseError
 from triagebot.language import DEFAULT_LANGUAGE, language_name
@@ -29,7 +30,15 @@ EMPTY_MESSAGE_DRAFT = (
 )
 
 
-def generate_draft(result: TriageResult, client: LLMClient, max_attempts: int = MAX_ATTEMPTS) -> str:
+CACHE_KIND = "draft"
+
+
+def generate_draft(
+    result: TriageResult,
+    client: LLMClient,
+    max_attempts: int = MAX_ATTEMPTS,
+    cache: ResponseCache | None = None,
+) -> str:
     """Produit un brouillon adapté ; se rabat sur un modèle fixe si le LLM échoue."""
     if result.status == Status.SKIPPED:
         return EMPTY_MESSAGE_DRAFT
@@ -39,12 +48,25 @@ def generate_draft(result: TriageResult, client: LLMClient, max_attempts: int = 
         return fallback_draft(language)
     system = DRAFT_SYSTEM_PROMPT.format(language=language_name(language))
     prompt = _prompt_for(result)
+    cache_text = f"{system}\n{prompt}"
+    cached = cache.get(CACHE_KIND, client.model, cache_text) if cache else None
+    if cached and cached.strip():
+        return cached
+    draft = _ask_llm(result, client, system, prompt, max_attempts)
+    if draft is None:
+        return fallback_draft(language)
+    if cache:
+        cache.put(CACHE_KIND, client.model, cache_text, draft)
+    return draft
+
+
+def _ask_llm(result: TriageResult, client: LLMClient, system: str, prompt: str, max_attempts: int) -> str | None:
     for attempt in range(1, max_attempts + 1):
         try:
             return _clean_draft(client.complete(system, prompt))
         except InvalidLLMResponseError as exc:
             logger.warning("Brouillon du ticket #%s, essai %d/%d : %s", result.ticket.id, attempt, max_attempts, exc)
-    return fallback_draft(language)
+    return None
 
 
 def fallback_draft(language: str) -> str:
