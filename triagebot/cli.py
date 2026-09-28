@@ -6,13 +6,14 @@ from pathlib import Path
 
 from rich.console import Console
 
-from triagebot.config import DEFAULT_MODEL, DEFAULT_RESULTS_PATH, DEFAULT_TICKETS_PATH
+from triagebot.config import DEFAULT_MODEL, DEFAULT_REPORT_PATH, DEFAULT_RESULTS_PATH, DEFAULT_TICKETS_PATH
 from triagebot.dashboard import render_dashboard
 from triagebot.errors import TriageBotError
 from triagebot.llm import OllamaClient
 from triagebot.loader import load_entries
 from triagebot.models import Ticket
 from triagebot.pipeline import run_triage
+from triagebot.report import export_report
 from triagebot.stats import compute_stats
 from triagebot.storage import save_results
 
@@ -23,6 +24,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="triagebot", description="Trie les tickets support avec un LLM local.")
     parser.add_argument("-i", "--input", type=Path, default=DEFAULT_TICKETS_PATH, help="fichier de tickets JSON")
     parser.add_argument("-o", "--output", type=Path, default=DEFAULT_RESULTS_PATH, help="fichier de résultats JSON")
+    parser.add_argument("-r", "--report", type=Path, default=DEFAULT_REPORT_PATH, help="rapport Markdown")
+    parser.add_argument("--no-drafts", action="store_true", help="ne génère pas les brouillons de réponse")
     parser.add_argument("-m", "--model", default=DEFAULT_MODEL, help="modèle Ollama à utiliser")
     parser.add_argument("-v", "--verbose", action="store_true", help="affiche le détail des réponses invalides")
     return parser
@@ -45,12 +48,13 @@ def _run(args: argparse.Namespace) -> int:
     entries = load_entries(args.input)
     client = OllamaClient(model=args.model)
     client.ensure_ready()
-    results = run_triage(entries, client, on_progress=_print_progress)
+    results = run_triage(entries, client, with_drafts=not args.no_drafts, on_progress=_print_progress)
     save_results(results, args.output)
+    export_report(results, args.report, client.model)
     render_dashboard(compute_stats(results), console)
-    console.print(f"[green]Résultats enregistrés dans {args.output}[/green]")
+    console.print(f"[green]Résultats : {args.output} — Rapport : {args.report}[/green]")
     return 0
 
 
-def _print_progress(ticket: Ticket) -> None:
-    console.print(f"[dim]Analyse du ticket #{ticket.id} ({ticket.player})...[/dim]")
+def _print_progress(step: str, ticket: Ticket) -> None:
+    console.print(f"[dim]{step} du ticket #{ticket.id} ({ticket.player})...[/dim]")
