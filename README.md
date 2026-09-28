@@ -112,6 +112,8 @@ Par défaut, l'outil lit `data/tickets.json`, puis écrit `results.json` et `rep
 | `-r`, `--report` | `report.md` | rapport Markdown |
 | `-m`, `--model` | `llama3.2:3b` | modèle Ollama à utiliser |
 | `--no-drafts` | désactivé | ne génère pas les brouillons (traitement plus rapide) |
+| `--cache` | `triagebot_cache.sqlite3` | base SQLite du cache des réponses du LLM |
+| `--no-cache` | désactivé | ignore le cache : tout est renvoyé au LLM |
 | `-v`, `--verbose` | désactivé | affiche le détail de chaque réponse invalide du LLM |
 
 Exemples :
@@ -120,6 +122,7 @@ Exemples :
 python -m triagebot --no-drafts                      # tri seul, plus rapide
 python -m triagebot -m mistral -v                    # autre modèle, mode détaillé
 python -m triagebot -i mes_tickets.json -r bilan.md  # autres fichiers
+python -m triagebot --no-cache                       # force une nouvelle analyse de tous les tickets
 ```
 
 ### Variables d'environnement
@@ -230,6 +233,11 @@ Un rapport rédigé pour un manager non technique :
 
 - **Tests unitaires** avec pytest (voir [Tests](#tests)).
 - **Sécurité** : détection des tickets qui tentent de manipuler le bot (voir ci-dessous).
+- **Cache SQLite** (`triagebot/cache.py`) : un ticket déjà analysé n'est pas renvoyé au LLM. Au second lancement sur les mêmes tickets, les analyses et brouillons sont relus depuis `triagebot_cache.sqlite3`, et le terminal indique combien de réponses ont été réutilisées.
+  - la clé combine le **modèle**, le **type de requête** (analyse ou brouillon) et le **texte envoyé** : changer de modèle ou modifier un message déclenche une nouvelle analyse ;
+  - seules les réponses **validées** sont stockées : un ticket `to_check` sera retenté au prochain lancement ;
+  - les entrées lues sont **revalidées** : une entrée corrompue est supprimée et le LLM est rappelé ;
+  - une panne du cache (fichier verrouillé, disque plein...) n'interrompt pas le traitement.
 
 ---
 
@@ -274,6 +282,7 @@ Evaluation-Python/
 │   ├── prompts.py            # prompts d'analyse et de brouillon
 │   ├── validation.py         # validation stricte des réponses du LLM
 │   ├── analyzer.py           # analyse d'un ticket avec nouvelles tentatives
+│   ├── cache.py              # cache SQLite des réponses validées
 │   ├── security.py           # détection des tentatives de manipulation
 │   ├── language.py           # détection de la langue du joueur
 │   ├── drafts.py             # brouillons de réponse
@@ -319,6 +328,7 @@ python -m pytest
 | `test_preprocess.py` | messages vides, entrées mal structurées, doublons |
 | `test_loader.py` | fichier absent, JSON mal formé, racine qui n'est pas une liste |
 | `test_security.py` | tentatives de manipulation détectées, absence de faux positifs, cas complet du ticket #6 |
+| `test_cache.py` | pas d'appel au LLM au 2ᵉ passage, persistance, clé par modèle, réponses invalides non stockées, entrée corrompue |
 | `test_pipeline.py` | traitement complet, LLM non appelé pour les tickets vides ou en doublon, contenu du rapport |
 
 ---
