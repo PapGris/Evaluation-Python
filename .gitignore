@@ -1,0 +1,19 @@
+# Environnement virtuel
+.venv/
+venv/
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Sorties générées par TriageBot
+results.json
+report.md
+*.sqlite3
+benchmark.json
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
