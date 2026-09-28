@@ -27,6 +27,13 @@ class Status(StrEnum):
     DUPLICATE = "duplicate"
 
 
+class Escalation(StrEnum):
+    MODERATION = "moderation"
+    SUPPORT_MANAGER = "support_manager"
+    HUMAN_REVIEW = "human_review"
+    STANDARD = "standard"
+
+
 MIN_SEVERITY = 1
 MAX_SEVERITY = 5
 
@@ -63,6 +70,9 @@ class TriageResult:
     analysis: Analysis | None = None
     reason: str | None = None
     duplicate_of: int | None = None
+    language: str | None = None
+    draft: str | None = None
+    escalation: Escalation | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -71,4 +81,7 @@ class TriageResult:
             "analysis": self.analysis.to_dict() if self.analysis else None,
             "reason": self.reason,
             "duplicate_of": self.duplicate_of,
+            "language": self.language,
+            "escalation": str(self.escalation) if self.escalation else None,
+            "draft": self.draft,
         }
