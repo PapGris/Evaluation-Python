@@ -1,0 +1,74 @@
+"""Structures de données manipulées par TriageBot."""
+
+from dataclasses import asdict, dataclass
+from enum import StrEnum
+from typing import Any
+
+
+class Category(StrEnum):
+    BUG = "bug"
+    PAYMENT = "payment"
+    ACCOUNT = "account"
+    SUGGESTION = "suggestion"
+    TOXICITY = "toxicity"
+    OTHER = "autre"
+
+
+class Sentiment(StrEnum):
+    POSITIVE = "positive"
+    NEUTRAL = "neutral"
+    NEGATIVE = "negative"
+
+
+class Status(StrEnum):
+    OK = "ok"
+    TO_CHECK = "to_check"
+    SKIPPED = "skipped"
+    DUPLICATE = "duplicate"
+
+
+MIN_SEVERITY = 1
+MAX_SEVERITY = 5
+
+
+@dataclass(frozen=True)
+class Ticket:
+    id: int
+    player: str
+    message: str
+
+
+@dataclass(frozen=True)
+class Analysis:
+    category: Category
+    severity: int
+    sentiment: Sentiment
+    summary: str
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "category": str(self.category),
+            "severity": self.severity,
+            "sentiment": str(self.sentiment),
+            "summary": self.summary,
+        }
+
+
+@dataclass
+class TriageResult:
+    """Résultat complet du traitement d'un ticket."""
+
+    ticket: Ticket
+    status: Status
+    analysis: Analysis | None = None
+    reason: str | None = None
+    duplicate_of: int | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "ticket": asdict(self.ticket),
+            "status": str(self.status),
+            "analysis": self.analysis.to_dict() if self.analysis else None,
+            "reason": self.reason,
+            "duplicate_of": self.duplicate_of,
+        }
